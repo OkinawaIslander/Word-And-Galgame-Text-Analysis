@@ -109,13 +109,15 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 示例结果：266 个 YPF 条目中导出 83 个文本脚本、83,226 条片段、约 170 万字符；索引后可直接按角色、关键词和上下文检索。完整统计见 [docs/ypf_report.md](docs/ypf_report.md)。
 
-### `.arc` / `.DAT` 等其它容器
+### 其他归档包：待开发
 
-- `.arc`：已识别 CLOCKUP 的 `ARC\x1a` 容器，但条目是加密的 `.asb` 编译脚本，当前会明确提示「需要专用反编译工具」，不会输出假文本。
-- `.DAT`：当前样本的 magic 为 `d5509600`（同时等于文件长度），整体熵接近 8，没有可读明文索引，也不是 YPF/YSTB；工具会识别并提示需要对应补丁/引擎的解包工具。
-- 如果某个 `.DAT` 实际上是未加密的文本或简单归档，可以先用 `file`/十六进制工具确认，再把格式信息或解包后的脚本提供出来。
+除 `.ypf` 外，以下归档格式的解包功能**暂未实现**：
 
-TextLens 不会尝试破解商业游戏的加密资源；它只负责在合法解包/反编译后，把文本变成可检索语料。
+```text
+.arc  .cpz  .dat  .xp3  .nsa  .rpa  .pak  .pck
+```
+
+这些文件不会被强行解析，也不会生成乱码；`index` 会跳过并在摘要中提示。请先用 GARbro、krkrextract、nsaextract 或对应引擎工具解包，导出 `.ks` / `.rpy` / `.scn` / `.txt` 后再交给 TextLens。
 
 ## 典型工作流
 
@@ -223,11 +225,9 @@ textlens extract "D:\Docs" -o - --format txt | Select-String "约定"
 ### 容器处理
 
 - **YU-RIS `.ypf`**：`unpack` 可以直接读取；如果文本以 YSTB V5 编译脚本存放，会解密并还原对话/旁白。
-- **`.arc`**：已识别 CLOCKUP 的 `ARC\x1a`，但条目是加密的 `.asb` 编译脚本，需要专用反编译工具。
-- **`.dat`**：当前样本是未知加密容器（高熵、无明文索引），会明确提示需要补丁/引擎工具。
-- **`.xp3` / `.nsa` / `.rpa` / `.pak` / `.pck`**：索引时识别并跳过，避免把归档当成文本。
+- **`.arc` / `.cpz` / `.dat` / `.xp3` / `.nsa` / `.rpa` / `.pak` / `.pck`**：解包功能待开发。索引时会识别并跳过，避免把归档当成文本。
 
-其它格式建议先用 [GARbro](https://github.com/morkt/GARbro)、`krkrextract`（KiriKiri XP3）、`nsaextract`（NScripter NSA）或引擎专用工具解包，导出 `.ks` / `.rpy` / `.scn` / `.txt` 后再索引。TextLens 不会尝试破解商业游戏的加密资源。
+在解包支持完成前，建议先用 [GARbro](https://github.com/morkt/GARbro)、`krkrextract`（KiriKiri XP3）、`nsaextract`（NScripter NSA）或引擎专用工具导出 `.ks` / `.rpy` / `.scn` / `.txt`，再交给 TextLens 索引。
 
 ### 角色名是怎么认出来的
 
@@ -321,7 +321,7 @@ python -m unittest discover -v
 
 - 旧版二进制 `.doc` 不直接解析；请转 `.docx`。
 - TJS 是脚本语言，只能提取字符串字面量；加密/编译后的游戏资源需要先解包或导出文本。
-- `.arc` / `.dat` / `.xp3` / `.nsa` / `.rpa` 等归档不会被强行解析；先解包是唯一可靠的路径。
+- `.ypf` 已支持解包；`.arc` / `.cpz` / `.dat` / `.xp3` / `.nsa` / `.rpa` 等归档包的解包功能待开发。
 - 角色名依赖启发式规则。若脚本把「角色名」和「台词」拆成两条不同命令，可能需要为该引擎补一个专用解析器。
 - 不分析图片、语音、字体或游戏资源文件。
 - Word 只读取正文、表格、脚注和标题；页眉页脚、批注、图片内文字不参与索引。

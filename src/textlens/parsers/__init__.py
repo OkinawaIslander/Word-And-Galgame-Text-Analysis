@@ -44,15 +44,16 @@ LEGACY_EXTENSIONS = frozenset({".doc", ".dot"})
 # engine-specific unpacker/decompiler before TextLens can read them.
 ARCHIVE_EXTENSIONS: dict[str, str] = {
     ".ypf": "YU-RIS YPF（用 textlens unpack 解包）",
-    ".arc": "CLOCKUP/自定义 ARC 归档",
-    ".dat": "游戏数据归档",
-    ".xp3": "KiriKiri XP3 归档",
-    ".nsa": "NScripter NSA 归档",
-    ".rpa": "Ren'Py RPA 归档",
-    ".pak": "通用 PAK 归档",
-    ".pck": "游戏资源包",
-    ".asb": "编译后的脚本",
-    ".sdat": "加密数据文件",
+    ".arc": "ARC 归档（解包待开发）",
+    ".cpz": "CPZ 归档（解包待开发）",
+    ".dat": "DAT 数据归档（解包待开发）",
+    ".xp3": "KiriKiri XP3（解包待开发）",
+    ".nsa": "NScripter NSA（解包待开发）",
+    ".rpa": "Ren'Py RPA（解包待开发）",
+    ".pak": "PAK 归档（解包待开发）",
+    ".pck": "PCK 资源包（解包待开发）",
+    ".asb": "编译后的脚本（待开发）",
+    ".sdat": "加密数据（待开发）",
 }
 
 SUPPORTED_EXTENSIONS = frozenset(PARSERS) | LEGACY_EXTENSIONS
@@ -224,7 +225,7 @@ def format_support_table() -> str:
         ("结构化", ".json .jsonl .csv .tsv"),
         ("字幕", ".srt .ass .ssa"),
         ("旧版 Word", ".doc .dot（需先转换）"),
-        ("游戏归档", ".arc .dat .xp3 .nsa .rpa（需先解包）"),
+        ("游戏归档", ".arc .cpz .dat .xp3 .nsa .rpa（解包待开发）"),
     ]
     width = max(display_width(name) for name, _ in groups)
     return "\n".join(f"  {pad_display(name, width)}  {exts}" for name, exts in groups)
