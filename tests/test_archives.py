@@ -78,7 +78,7 @@ class ArchiveTests(unittest.TestCase):
             path.write_bytes(b"\xd5\x50\x96\x00" + b"\0" * 64)
             with self.assertRaises(Exception) as context:
                 open_archive(path)
-            self.assertIn(".DAT", str(context.exception))
+            self.assertIn("待开发", str(context.exception))
 
 
 if __name__ == "__main__":

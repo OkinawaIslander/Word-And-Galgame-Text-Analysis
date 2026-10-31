@@ -1,7 +1,7 @@
 """Game archive readers.
 
 Currently implemented: YU-RIS YPF containing YSTB compiled scripts.
-Other containers are detected and reported rather than guessed at.
+ARC, CPZ, DAT, XP3, NSA, RPA and similar containers are future work.
 """
 
 from __future__ import annotations
@@ -45,17 +45,13 @@ def open_archive(path: str | Path):
         return YpfArchive(path)
     with path.open("rb") as handle:
         magic = handle.read(16)
-    if path.suffix.casefold() == ".arc" and magic.startswith(b"ARC\x1a"):
+    suffix = path.suffix.casefold()
+    if suffix in {".arc", ".cpz", ".dat", ".xp3", ".nsa", ".rpa", ".pak", ".pck"}:
         raise UnsupportedArchive(
-            "这是 CLOCKUP/自定义 ARC 容器，条目为编译后的 .asb，且数据经过加密；"
-            "当前版本不能直接反编译。请先用对应引擎工具解包/反编译。"
-        )
-    if path.suffix.casefold() == ".dat":
-        raise UnsupportedArchive(
-            f"暂时无法识别这个 .DAT 容器（magic {magic[:4].hex()}，高熵）。"
-            "它不是 YU-RIS YPF，也没有可直接读取的明文索引；"
-            "请提供该补丁/引擎的解包工具，或先导出脚本。"
+            f"{suffix} 归档包的解包功能待开发；当前只支持 YU-RIS .ypf。"
+            "请先用对应引擎工具解包，或把文本导出后再索引。"
         )
     raise UnsupportedArchive(
-        f"不支持的归档格式：{path.suffix or '(无扩展名)'}，magic {magic[:8].hex()}。"
+        f"不支持的归档格式：{suffix or '(无扩展名)'}，magic {magic[:8].hex()}。"
+        "当前只实现了 YU-RIS .ypf 解包。"
     )

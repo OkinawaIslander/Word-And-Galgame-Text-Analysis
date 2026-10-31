@@ -81,8 +81,8 @@ class CliTests(unittest.TestCase):
         (archive_dir / "script.arc").write_bytes(b"ARC\x1a" + b"\x00" * 32)
         code, out, err = self.run_cli("index", str(archive_dir), "--db", str(self.db))
         self.assertEqual(code, 1, err)
-        self.assertIn("游戏归档", out)
-        self.assertIn("GARbro", out)
+        self.assertIn("归档包", out)
+        self.assertIn("待开发", out)
 
     def test_unpack_ypf(self) -> None:
         archive = self.root / "game.ypf"

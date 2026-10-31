@@ -189,8 +189,8 @@ def cmd_index(args: argparse.Namespace) -> int:
             print(f"已清理失效记录：{report.removed}")
         if report.skipped_archives:
             print(
-                f"跳过 {len(report.skipped_archives)} 个游戏归档"
-                "（需要先用 GARbro / krkrextract / nsaextract 等解包）："
+                f"跳过 {len(report.skipped_archives)} 个归档包"
+                "（YPF 用 textlens unpack；其他格式解包待开发）："
             )
             for path, label in report.skipped_archives[:8]:
                 print(f"  - {label}  {path}")
