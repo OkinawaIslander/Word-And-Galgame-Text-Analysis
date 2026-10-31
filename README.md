@@ -7,6 +7,7 @@ TextLens 是一个纯 Python 的本地 CLI 工具，面向翻译校对、剧情�
 ## 能做什么
 
 - **一次索引，多种格式统一检索**：`.docx`、`.txt`、`.md`、KiriKiri `.ks`、Ren'Py `.rpy`、NScripter `.scn`、TJS `.tjs`、`.json/.jsonl`、`.csv/.tsv`、`.srt/.ass`。
+- **内置 YPF 解包**：直接读取 YU-RIS `.ypf`，自动恢复 YSTB 密钥，把编译脚本还原成可检索文本。
 - **中文短词也能搜**：FTS5 trigram 处理 3 字以上片段；1–2 个字自动回退 `LIKE`，不会出现「搜两个字没结果」。
 - **知道是谁说的**：尽力从 `诗音：「……」`、`[name text="诗音"]`、Ren'Py `Character("Eileen")` 等写法提取角色名，可按角色过滤。
 - **直接看上下文**：`context` 显示命中行前后若干段，适合校对和考据。
@@ -76,6 +77,45 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\run.cmd stats --db .textlens\demo.db --top 15
 .\run.cmd search "约定" --db .textlens\demo.db --speaker 诗音
 ```
+
+## 解包 galgame 归档
+
+### YU-RIS `.ypf`
+
+```powershell
+.\run.cmd unpack "examples\[CLOCKUP team.DYO] Zwei Worter -ツヴァイ・ウォルター- HDリマスター.ypf" -o unpacked\zwei
+
+# 只列条目，不写文件
+.\run.cmd unpack "游戏.ypf" --list
+
+# 同时导出解压后的 .ybn 原始脚本
+.\run.cmd unpack "游戏.ypf" -o unpacked\game --raw
+```
+
+默认会：
+
+- 解析 YPF 目录，解压全部条目；
+- 自动从 YSTB 指令/参数结构恢复 4 字节密钥（也可 `--key 9b093929` 手动指定）；
+- 解码 V5 编译脚本中的对话和旁白，按角色写成 `说话人：台词`；
+- 输出 `text/`（每个脚本一个 UTF-8 `.txt`）、`corpus.jsonl` 和 `manifest.json`。
+
+然后直接索引解出来的文本：
+
+```powershell
+.\run.cmd index "unpacked\zwei\text" --db .textlens\zwei.db
+.\run.cmd search "イリアス" --db .textlens\zwei.db
+.\run.cmd context "ご飯" --db .textlens\zwei.db --before 2 --after 2
+```
+
+示例结果：266 个 YPF 条目中导出 83 个文本脚本、83,226 条片段、约 170 万字符；索引后可直接按角色、关键词和上下文检索。完整统计见 [docs/ypf_report.md](docs/ypf_report.md)。
+
+### `.arc` / `.DAT` 等其它容器
+
+- `.arc`：已识别 CLOCKUP 的 `ARC\x1a` 容器，但条目是加密的 `.asb` 编译脚本，当前会明确提示「需要专用反编译工具」，不会输出假文本。
+- `.DAT`：当前样本的 magic 为 `d5509600`（同时等于文件长度），整体熵接近 8，没有可读明文索引，也不是 YPF/YSTB；工具会识别并提示需要对应补丁/引擎的解包工具。
+- 如果某个 `.DAT` 实际上是未加密的文本或简单归档，可以先用 `file`/十六进制工具确认，再把格式信息或解包后的脚本提供出来。
+
+TextLens 不会尝试破解商业游戏的加密资源；它只负责在合法解包/反编译后，把文本变成可检索语料。
 
 ## 典型工作流
 
@@ -167,6 +207,7 @@ textlens extract "D:\Docs" -o - --format txt | Select-String "约定"
 
 | 格式 | 解析内容 | 说明 |
 | --- | --- | --- |
+| `.ypf` | YU-RIS 条目表、YSTB V5 编译脚本 | 用 `unpack` 解包并提取文本；自动恢复 XOR 密钥 |
 | `.docx` / `.docm` / `.dotx` / `.dotm` | 正文段落、标题、表格行、脚注、文档属性 | 纯标准库读取 OOXML；跳过修订删除内容；不解析图片 |
 | `.doc` / `.dot` | 不支持直接读取 | 用 Word 另存为 `.docx`，或 `soffice --headless --convert-to docx` |
 | `.txt` / `.md` | 逐行文本、Markdown 标题 | 自动检测 UTF-8 / UTF-16 / GB18030 / Big5 / CP932 等 |
@@ -179,17 +220,14 @@ textlens extract "D:\Docs" -o - --format txt | Select-String "约定"
 | `.srt` | 字幕正文 | 保留时间轴对应的源行号 |
 | `.ass` / `.ssa` | `Dialogue:` 行、角色字段 | 去除 `{\…}` 样式标签 |
 
-### 游戏归档不是文本
+### 容器处理
 
-`.arc`、`.dat`、`.xp3`、`.nsa`、`.rpa`、`.pak`、`.pck` 这类文件通常是加密/压缩容器，不是剧本。TextLens 会在索引时识别并跳过它们，列出需要解包的路径，而不会静默忽略或误报成解析失败。
+- **YU-RIS `.ypf`**：`unpack` 可以直接读取；如果文本以 YSTB V5 编译脚本存放，会解密并还原对话/旁白。
+- **`.arc`**：已识别 CLOCKUP 的 `ARC\x1a`，但条目是加密的 `.asb` 编译脚本，需要专用反编译工具。
+- **`.dat`**：当前样本是未知加密容器（高熵、无明文索引），会明确提示需要补丁/引擎工具。
+- **`.xp3` / `.nsa` / `.rpa` / `.pak` / `.pck`**：索引时识别并跳过，避免把归档当成文本。
 
-处理顺序：
-
-1. 用 [GARbro](https://github.com/morkt/GARbro)、`krkrextract`（KiriKiri XP3）、`nsaextract`（NScripter NSA）或引擎专用工具解包。
-2. 导出 `.ks` / `.rpy` / `.scn` / `.txt` / `.csv` 等文本。
-3. 再运行 `textlens index <导出目录>`。
-
-如果解包后得到的是编译脚本（例如 `.asb`）而不是文本，还需要对应的反编译/导出工具。TextLens 不会尝试破解游戏资源。
+其它格式建议先用 [GARbro](https://github.com/morkt/GARbro)、`krkrextract`（KiriKiri XP3）、`nsaextract`（NScripter NSA）或引擎专用工具解包，导出 `.ks` / `.rpy` / `.scn` / `.txt` 后再索引。TextLens 不会尝试破解商业游戏的加密资源。
 
 ### 角色名是怎么认出来的
 
@@ -235,7 +273,10 @@ src/textlens/
     engines.py      # KiriKiri / NScripter / Ren'Py
     plain.py        # 文本、字幕、JSON、CSV、TJS
     __init__.py     # 注册表与文件发现
-tests/              # unittest，44 个用例
+  archives/
+    ypf.py          # YU-RIS YPF 解包 + YSTB V5 文本提取
+    __init__.py     # 归档识别与错误提示
+tests/              # unittest，48 个用例
 examples/demo/      # 可直接索引的演示语料
 ```
 

@@ -43,6 +43,7 @@ LEGACY_EXTENSIONS = frozenset({".doc", ".dot"})
 # Containers and compiled assets.  They are not text and usually need an
 # engine-specific unpacker/decompiler before TextLens can read them.
 ARCHIVE_EXTENSIONS: dict[str, str] = {
+    ".ypf": "YU-RIS YPF（用 textlens unpack 解包）",
     ".arc": "CLOCKUP/自定义 ARC 归档",
     ".dat": "游戏数据归档",
     ".xp3": "KiriKiri XP3 归档",
@@ -213,6 +214,7 @@ def discover_archives(
 
 def format_support_table() -> str:
     groups = [
+        ("YU-RIS", ".ypf（用 unpack 解包）"),
         ("Word", ".docx .docm .dotx .dotm"),
         ("纯文本", ".txt .md .markdown"),
         ("KiriKiri/KAG", ".ks"),

@@ -9,6 +9,7 @@ venv/
 
 # TextLens local data
 .textlens/
+unpacked/
 *.db
 *.db-wal
 *.db-shm

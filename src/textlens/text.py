@@ -166,6 +166,7 @@ _NARRATION_PREFIXES = (
 
 _NAME_INVALID_RE = re.compile(r"[。！？!?，,；;、/\\|=<>《》〈〉【】\[\]:：]")
 _SENTENCE_TAIL_RE = re.compile(r"[。！？!?…」』”\"）)]\s*$")
+_UNKNOWN_SPEAKER_RE = re.compile(r"^[?？!！…・*＊\-—]+$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -298,7 +299,7 @@ def classify_line(line: str) -> LineInfo | None:
                 speaker = expression.group("name").strip()
             if valid_colon_speaker(speaker):
                 return LineInfo("dialogue", speaker, inner)
-            if not prefix or prefix in {"*", "-", "—"}:
+            if not prefix or prefix in {"*", "-", "—"} or _UNKNOWN_SPEAKER_RE.fullmatch(speaker):
                 return LineInfo("dialogue", None, inner)
             # A quoted clause inside narration stays narration.
             return LineInfo("narration", None, raw)

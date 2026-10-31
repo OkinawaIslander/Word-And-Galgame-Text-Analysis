@@ -29,6 +29,13 @@ class TextTests(unittest.TestCase):
         self.assertIsNone(info.speaker)
         self.assertEqual(info.text, "不要忘记。")
 
+    def test_unknown_speaker_placeholder(self) -> None:
+        info = classify_line("？？？「イリアス～、調子はどう？」")
+        assert info is not None
+        self.assertEqual(info.kind, "dialogue")
+        self.assertIsNone(info.speaker)
+        self.assertIn("イリアス", info.text)
+
     def test_narration_quote_is_not_dialogue(self) -> None:
         info = classify_line("他说：「明天见。」")
         assert info is not None

@@ -10,6 +10,7 @@ import unittest
 from textlens.cli import main
 
 from .helpers import write_text
+from .test_archives import make_ypf
 
 
 class CliTests(unittest.TestCase):
@@ -82,6 +83,23 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 1, err)
         self.assertIn("游戏归档", out)
         self.assertIn("GARbro", out)
+
+    def test_unpack_ypf(self) -> None:
+        archive = self.root / "game.ypf"
+        key = make_ypf(archive)
+        output = self.root / "unpacked"
+        code, out, err = self.run_cli(
+            "unpack",
+            str(archive),
+            "-o",
+            str(output),
+            "--key",
+            key.hex(),
+            "--force",
+        )
+        self.assertEqual(code, 0, err)
+        self.assertIn("解包完成", out)
+        self.assertTrue((output / "text" / "test.txt").exists())
 
     def test_extract(self) -> None:
         output = self.root / "corpus.md"

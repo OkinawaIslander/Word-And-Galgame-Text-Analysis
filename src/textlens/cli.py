@@ -12,6 +12,8 @@ from typing import TextIO
 
 from . import __version__
 from .analysis import analyze, render_markdown, render_text
+from .archives import open_archive
+from .archives.ypf import extract_ypf
 from .errors import TextLensError
 from .export import extract
 from .index import DEFAULT_DB, Index, build_index
@@ -31,6 +33,7 @@ _KINDS = tuple(_KIND_LABELS)
 
 _EPILOG = """\
 示例：
+  textlens unpack "D:\\Games\\game.ypf" -o unpacked\\game
   textlens index "D:\\Games\\MyGame" "D:\\Docs"
   textlens search "约定" --ext .ks,.txt
   textlens context "约定的地方" --before 2 --after 2
@@ -349,6 +352,50 @@ def cmd_files(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_unpack(args: argparse.Namespace) -> int:
+    archive = open_archive(args.archive)
+    entries = archive.list_entries()  # type: ignore[attr-defined]
+    if args.list:
+        if args.json:
+            print(json.dumps(entries, ensure_ascii=False, indent=2))
+        else:
+            print(f"{len(entries)} 个条目")
+            for entry in entries:
+                print(
+                    f"  {entry['unpacked_size']:>10,}  "
+                    f"{'zlib' if entry['packed'] else 'raw ':>4}  {entry['name']}"
+                )
+        return 0
+
+    output = Path(args.output).expanduser() if args.output else Path("unpacked") / Path(args.archive).stem
+    report = extract_ypf(
+        archive,  # type: ignore[arg-type]
+        output,
+        mode="all" if args.raw else "text",
+        key_hex=args.key,
+        force=args.force,
+    )
+    if args.json:
+        print(json.dumps(dataclasses.asdict(report), ensure_ascii=False, indent=2))
+    else:
+        print(f"解包完成：{report.format}")
+        print(
+            f"条目 {report.entries}，文本脚本 {report.text_entries}，"
+            f"片段 {report.text_segments:,}，字符 {report.chars:,}"
+        )
+        if report.key:
+            print(f"YSTB 密钥：{report.key}")
+        if args.raw:
+            print(f"原始条目：{report.raw_entries}")
+        print(f"输出：{Path(report.output).resolve()}")
+        if report.text_entries:
+            print(f"下一步：textlens index \"{Path(report.output) / 'text'}\"")
+        _print_errors(report.errors)
+    if report.errors and not report.text_entries and not report.raw_entries:
+        return 1
+    return 0
+
+
 def cmd_extract(args: argparse.Namespace) -> int:
     report = extract(
         args.paths,
@@ -450,6 +497,20 @@ def build_parser() -> argparse.ArgumentParser:
     files.add_argument("--db", default=str(DEFAULT_DB), help="索引数据库路径")
     files.add_argument("--json", action="store_true", help="以 JSON 输出")
     files.set_defaults(func=cmd_files)
+
+    unpack = subparsers.add_parser(
+        "unpack",
+        help="解包 galgame 归档并提取文本",
+        description="读取 YU-RIS YPF，解压 YSTB 脚本并导出可检索文本。",
+    )
+    unpack.add_argument("archive", help="归档文件，例如 .ypf")
+    unpack.add_argument("--output", "-o", help="输出目录（默认 unpacked/<归档名>）")
+    unpack.add_argument("--list", action="store_true", help="只列出归档条目")
+    unpack.add_argument("--raw", action="store_true", help="同时导出解压后的原始 .ybn/.ysc 文件")
+    unpack.add_argument("--key", help="手动指定 YSTB 4 字节密钥，8 位十六进制")
+    unpack.add_argument("--force", action="store_true", help="覆盖已存在的输出目录")
+    unpack.add_argument("--json", action="store_true", help="以 JSON 输出")
+    unpack.set_defaults(func=cmd_unpack)
 
     extract_parser = subparsers.add_parser("extract", help="导出合并语料", description="把多个文件解析后导出为 JSONL/TXT/Markdown。")
     extract_parser.add_argument("paths", nargs="+", help="文件或目录")
